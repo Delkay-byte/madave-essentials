@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Madave Essentials</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        header {
+            text-align: center;
+            padding: 8px 0;
+            border-bottom: 2px solid #eaeaea;
+        }
+        .store-location {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* I am adding styling rules for my new responsive fluid banner image element */
+        .banner-container {
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.06);
+        }
+        .banner-image {
+            width: 100%;
+            height: auto;
+            max-height: 384px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* I am setting up the product image container so my pictures look uniform, even if the source images are different sizes */
+        .product-image {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            background-color: #f1f3f5; /* I am adding a soft background color to show while the image loads */
+            display: block;
+        }
+        .product-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* I am designing the toast notification to pop up at the bottom center */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 25px;
+            padding: 12px;
+            position: fixed;
+            z-index: 1001;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        /* I am designing a sticky cart summary to float at the bottom right of the screen */
+        .floating-cart {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #25D366;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-weight: bold;
+            z-index: 1000;
+            display: none; /* I will hide it initially until an item is added */
+            cursor: pointer;
+        }
+        .floating-cart.expanded {
+            width: 320px;
+            border-radius: 20px;
+            padding: 15px;
+            text-align: left;
+            background: white;
+            color: #333;
+        }
+        .floating-cart.expanded .cart-header {
+            color: #333;
+        }
+        .floating-cart .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+        .floating-cart .cart-items-list {
+            margin-top: 12px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .floating-cart .cart-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            line-height: 1.2;
+            padding-right: 5px;
+        }
+        .floating-cart .cart-item-row .item-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .floating-cart .cart-item-row .item-detail {
+            text-align: right;
+            min-width: 80px;
+            font-size: 0.8rem;
+        }
+        .floating-cart .cart-item-row .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+        .floating-cart .cart-item-row .delete-btn:hover {
+            background: #e84146;
+        }
+        .floating-cart .cart-total-detail {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            text-align: right;
+            color: #333;
+        }
+        .floating-cart.expanded .cart-total-detail {
+            color: #333;
+            border-top: 1px solid #ddd;
+        }
+        .cart-clear-all-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        .cart-clear-all-btn:hover {
+            background: #e84146;
+        }
+        .cart-checkout-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+            transition: background-color 0.2s;
+        }
+        .cart-checkout-btn:hover {
+            background: #1eaa54;
+        }
+
+        .stock-heading {
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-top: 12px;
+            color: #333;
+        }
+        /* Headings for checkout, review and reviews list */
+        .checkout-box h3,
+        .review-form h4,
+        .reviews-section h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+        .carousel-track {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+        }
+        .carousel-track::-webkit-scrollbar {
+            display: none;
+        }
+        .carousel-item {
+            min-width: 130px;
+            background: #f1f3f5;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .product-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            cursor: pointer;
+        }
+        .product-image-wrapper {
+            overflow: hidden;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-image-wrapper:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+        .product-image-wrapper:active {
+            transform: scale(0.98);
+        }
+        .product-name {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+        .product-price {
+            color: #28a745;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .out-of-stock {
+            background: #fff1f0;
+            color: #c53030;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-block;
+        }
+        .qty-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .qty-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 6px 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .qty-btn:disabled {
+            background: #f1f3f5;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            animation: fadeInOverlay 0.6s ease-out forwards;
+        }
+        @keyframes fadeInOverlay {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .popup-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 300px;
+            width: 80%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: scale(0.9);
+            animation: fadeInPopup 0.6s ease-out 0.2s forwards;
+        }
+        @keyframes fadeInPopup {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .popup-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .checkout-box {
+            margin-top: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .review-panel {
+            margin-top: 30px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .two-column {
+            display: flex;
+            gap: 20px;
+            align-items: stretch;
+            margin-top: 20px;
+        }
+        .two-column .checkout-box,
+        .two-column .review-panel {
+            flex: 1;
+            min-width: 260px;
+            display: flex;
+            flex-direction: column;
+        }
+        .review-panel .review-form {
+            margin: 0;
+            border-top: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: space-between;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* Restock form tweaks */
+        .restock-label {
+            display:block;
+            font-weight:700;
+            color:#333;
+            margin-bottom:6px;
+            font-size:0.95rem;
+        }
+        #restock-save-btn { background:#25D366; }
+        .search-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .search-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 520px;
+            justify-content: center;
+            position: relative;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px 16px;
+            border-radius: 30px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            outline: none;
+            transition: box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+        .search-input:focus {
+            box-shadow: 0 6px 18px rgba(37,211,102,0.12);
+            border-color: #25D366;
+        }
+        .search-clear-btn {
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #f1f3f5;
+            border: 1px solid #dcdde1;
+            cursor: pointer;
+            transition: transform 0.12s ease, background-color 0.12s ease;
+            display: inline-block;
+        }
+        .search-clear-btn:hover { background: #e9ecef; transform: translateY(-2px); }
+        .search-clear-btn:active { transform: translateY(0); }
+        .search-suggestions {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 1200;
+            padding: 6px 0;
+        }
+        .search-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #333;
+        }
+        .search-suggestion-item:hover {
+            background: #f1f3f5;
+        }
+        .search-meta {
+            margin-top: 10px;
+            color: #555;
+            font-size: 0.95rem;
+            min-height: 1.3em;
+            text-align: center;
+        }
+        .highlight {
+            background: #fff3cd;
+            border-radius: 4px;
+            padding: 0 3px;
+        }
+        .whatsapp-btn,
+        .submit-review-btn {
+            display: inline-block;
+            background-clip: padding-box;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-size: 1.0rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            white-space: nowrap;
+            transition: background-color 0.18s, transform 0.12s;
+            width: auto;
+            min-width: 0;
+        }
+        .whatsapp-btn { background-color: #25D366; }
+        .whatsapp-btn:hover { background-color: #1eaa54; transform: translateY(-2px); }
+        .submit-review-btn { background-color: #007bff; }
+        .submit-review-btn:hover { background-color: #0056b3; transform: translateY(-2px); }
+        .reviews-section {
+            margin-top: 40px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #reviews-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .review-card {
+            flex: 1 1 calc(50% - 8px);
+            min-width: 250px;
+            border: 2px solid #25D366;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .review-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);
+        }
+        @media (max-width: 768px) {
+            .review-card {
+                flex: 1 1 100%;
+            }
+        }
+        .review-author {
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #25D366;
+            margin-bottom: 8px;
+        }
+        .review-text {
+            font-size: 0.95rem;
+            font-style: italic;
+            color: #555;
+            flex: 1;
+        }
+        .review-form {
+            margin-top: 20px;
+            border-top: 1px solid #eaeaea;
+            padding-top: 15px;
+        }
+        .submit-review-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: inline-block;
+            white-space: nowrap;
+            transition: background-color 0.3s;
+        }
+        .submit-review-btn:hover {
+            background-color: #0056b3;
+        }
+        .loading-text {
+            text-align: center;
+            font-style: italic;
+            color: #888;
+            padding: 20px;
+        }
+        @media (max-width: 800px) {
+            .two-column { flex-direction: column; }
+        }
+
+        /* I am hiding the h1 visually so Google sees the name, but my store layout stays clean */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        /* My professional header bar */
+        .store-header {
+            background: #ffffff;
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px;
+        }
+
+        .header-branding {
+            cursor: pointer; /* I am telling the browser this is an interactive element */
+            display: inline-block;
+            user-select: none; /* I am preventing text selection during rapid clicks */
+            -webkit-user-select: none; /* For Safari/Chrome */
+        }
+
+        .header-branding span {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            font-family: sans-serif;
+            letter-spacing: 1px;
+        }
+
+        #logout-btn {
+            border: none;
+            background: #ff4757;
+            color: white;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.95rem;
+            margin-left: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        #logout-btn:hover {
+            background-color: #e84146;
+            transform: translateY(-1px);
+        }
+
+        /* Floating WhatsApp Contact Button (idle-fade + draggable) */
+        .whatsapp-float {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            cursor: grab; /* Shows the user they can move it */
+            opacity: 0.5; /* Always dimmed by default */
+            transition: opacity 0.3s ease, transform 0.2s ease;
+            touch-action: none; /* Prevents page scrolling while dragging */
+            text-align: center;
+        }
+
+        /* Brighten when the user interacts */
+        .whatsapp-float:hover,
+        .whatsapp-float:active,
+        .whatsapp-float.dragging {
+            opacity: 1;
+        }
+
+        .whatsapp-float-icon {
+            background-color: #25D366;
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .whatsapp-float-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .whatsapp-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        /* My View Switcher Navigation Tab Styles */
+        .store-nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .nav-tab-btn {
+            flex: 1;
+            max-width: 200px;
+            padding: 12px;
+            border: none;
+            background: #f1f3f5;
+            color: #555;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+        .nav-tab-btn.active {
+            background: #25D366; /* Using your vibrant WhatsApp green */
+            color: white;
+            box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);
+        }
+
+        /* Horizontal scrolling container for category pills on mobile */
+        .category-filters {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 5px 0 15px 0;
+            margin: 10px 0;
+            scrollbar-width: none; /* Hides scrollbar on Firefox */
+            -ms-overflow-style: none; /* Hides scrollbar on IE/Edge */
+        }
+        .category-filters::-webkit-scrollbar {
+            display: none; /* Hides scrollbar on Chrome/Safari */
+        }
+        .category-btn {
+            background: #fff;
+            border: 1px solid #ced4da;
+            color: #555;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .category-btn.active {
+            background: #25D366;
+            color: white;
+            border-color: #25D366;
+            box-shadow: 0 4px 8px rgba(37, 211, 102, 0.2);
+        }
+        .nav-tab-btn:hover:not(.active) {
+            background: #e9ecef;
+        }
+
+        /* Loading Spinner Styles */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #25D366;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 20px;
+            font-size: 1rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="welcome-popup" class="popup-overlay">
+        <div class="popup-content">
+            <h3>Welcome to Madave Store! 🌸</h3>
+            <p>Quality toiletries sourced directly for you in Adidome. Fast delivery anywhere!.</p>
+            <button class="popup-btn" onclick="closeWelcomePopup()">Start Shopping</button>
+        </div>
+    </div>
+
+    <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading store data...</div>
+    </div>
+
+    <div id="toast">Item added!</div>
+    <div class="floating-cart" id="floating-cart" onclick="toggleCartDetails(event)">
+        <div class="cart-header">
+            <span>🛒 <span id="cart-item-count">0</span> Items</span>
+            <span>GH₵ <span id="cart-total-price">0.00</span></span>
+        </div>
+        <div class="cart-items-list" id="cart-items-list" style="display:none;"></div>
+        <div class="cart-total-detail" id="cart-total-detail" style="display:none;">Total: GH₵ <span id="cart-total-detail-price">0.00</span></div>
+        <button class="cart-checkout-btn" id="cart-checkout" style="display:none;" onclick="switchView('checkout'); event.stopPropagation();">✅ Checkout</button>
+        <button class="cart-clear-all-btn" id="cart-clear-all" style="display:none;" onclick="clearAllCart(event)">🗑️ Clear All</button>
+    </div>
+
+    <h1 class="sr-only">Madave Star Enterprise</h1>
+
+    <header class="store-header">
+        <div class="header-branding" onclick="handleBrandingClick()">
+            <span>Madave Star Enterprise</span>
+        </div>
+    </header>
+
+    <div class="banner-container">
+        <img id="main-banner" src="madave_star_enterprise_banner.png" alt="Madave Star Enterprise Banner" class="banner-image">
+    </div>
+
+    <div class="store-nav-tabs">
+        <button id="tab-shop" class="nav-tab-btn active" onclick="switchView('shop')">🛍️ Shop Products</button>
+        <button id="tab-checkout" class="nav-tab-btn" onclick="switchView('checkout')">🛒 Checkout & Reviews</button>
+    </div>
+
+    <!-- Admin Login Modal (hidden) -->
+    <div id="adminLoginModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+        <div style="background:white; padding:30px; border-radius:8px; text-align:center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 320px;">
+            <h3 style="margin-top:0;">🔒 Admin Access</h3>
+            <div style="position:relative; margin-bottom:15px;">
+                <input type="password" id="adminPasswordInput" placeholder="Enter Admin Key" style="width:90%; padding:10px; padding-right:40px; border:1px solid #ccc; border-radius:4px;">
+                <span onclick="togglePasswordVisibility()" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:18px; user-select:none;">👁️</span>
+            </div>
+            <button onclick="attemptAdminLogin()" style="background:#2ed573; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; width:45%;">Unlock</button>
+            <button onclick="closeAdminLoginModal()" style="background:#ff4757; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; width:45%; margin-left:5%;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Admin Restock Modal (hidden) -->
+    <div id="adminRestockModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; justify-content:center; align-items:center;">
+        <div style="background:#fff; padding:22px; border-radius:10px; width:360px; box-shadow:0 8px 28px rgba(0,0,0,0.25);">
+            <h3 style="margin:0 0 12px 0; font-size:1.1rem;">Restock Item</h3>
+            <div class="restock-form">
+                <label class="restock-label">Product ID</label>
+                <input type="text" id="restock-product-id" class="input-field" placeholder="Product ID" readonly style="background:#f6f7f8;">
+
+                <label class="restock-label" style="margin-top:10px;">Qty</label>
+                <input type="number" id="restock-qty" class="input-field" placeholder="Quantity to add" min="1">
+
+                <div style="display:flex; gap:10px; margin-top:14px;">
+                    <button onclick="saveRestock()" id="restock-save-btn" style="flex:1; background:#2ed573; color:#fff; border:none; padding:10px; border-radius:6px; font-weight:700; cursor:pointer;">Save Restock</button>
+                    <button onclick="closeRestockModal()" style="flex:1; background:#ff4757; color:#fff; border:none; padding:10px; border-radius:6px; font-weight:700; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-shop">
+
+        <div class="search-container">
+            <div class="search-row">
+                <input type="text" id="search-bar" oninput="handleSearch(); updateSearchSuggestions(this.value)" placeholder="Type a product name....." class="search-input" autocomplete="off">
+                <button type="button" class="qty-btn search-clear-btn" onclick="clearSearch()">Clear</button>
+                <div id="search-suggestions" class="search-suggestions" style="display:none;"></div>
+            </div>
+            <div id="search-meta" class="search-meta">Search live across product names.</div>
+        </div>
+
+        <div class="category-filters" id="category-filters">
+            <button class="category-btn active" onclick="filterByCategory('All', this)">🌟 All Products</button>
+            <button class="category-btn" onclick="filterByCategory('Bath & Personal Care', this)">🧼 Bath & Personal Care</button>
+            <button class="category-btn" onclick="filterByCategory('Oral Care', this)">🦷 Oral Care</button>
+            <button class="category-btn" onclick="filterByCategory('Paper & Family Hygiene', this)">🧻 Paper & Family Hygiene</button>
+            <button class="category-btn" onclick="filterByCategory('Laundry & Household Cleaning', this)">🧺 Laundry & Household Cleaning</button>
+            <button class="category-btn" onclick="filterByCategory('Antiseptics & Health', this)">🩹 Antiseptics & Health</button>
+            <button class="category-btn" onclick="filterByCategory('Uncategorized', this)">📦 Other / General</button>
+        </div>
+
+        <div class="product-grid" id="products-container">
+            <div class="loading-text">Fetching current shop ledger...</div>
+        </div>
+    </div>
+
+    <div id="view-checkout" style="display: none;">
+        <div class="two-column">
+        <div class="checkout-box">
+            <h3>Delivery & Checkout</h3>
+            <input type="text" id="customer-name" class="input-field" placeholder="Your Full Name">
+            <input type="text" id="customer-phone" class="input-field" placeholder="Your Phone Number">
+            <input type="text" id="delivery-point" class="input-field" placeholder="Delivery Point (e.g., Akatsi Trotro Station)">
+            
+            <button class="whatsapp-btn" onclick="sendOrderViaWhatsApp()">Order via WhatsApp</button>
+        </div>
+
+        <div class="review-panel">
+            <div class="review-form">
+                <h4>Leave a Review ⭐️</h4>
+                <p style="font-size: 0.85rem; color: #666; margin-top: 0; margin-bottom: 15px;">
+                    <em>Loved your last order? Don't forget to leave a review below to help others!</em>
+                </p>
+                <input type="text" id="reviewer-name" class="input-field" placeholder="Your Name">
+                <select id="review-rating" class="input-field" aria-label="Rating">
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Very good</option>
+                    <option value="3">3 - Good</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="1">1 - Poor</option>
+                </select>
+                <textarea id="review-body" class="input-field" rows="3" placeholder="How was your experience?"></textarea>
+                <button class="submit-review-btn" onclick="submitReview()">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="reviews-section">
+        <h3>What Our Customers Say 💬</h3>
+        <div id="reviews-container">
+            <div class="loading-text">Loading verified reviews...</div>
+        </div>
+    </div>
+    </div>
+
+    
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx4dRVehJlfoIzdHBorWutj7eHSuOaTBmu5gbSC6iroGY6rZx4lU25aTcX-Vc7k6boUgA/exec";
+
+        let productCatalog = [];
+        const cart = {};
+        let currentCategoryFilter = 'All';
+
+        window.onload = function() {
+            // Clear session key to force re-authentication on page refresh
+            sessionStorage.removeItem("madave_secret_key");
+            isAdminMode = false;
+
+            fetchLiveStorefrontData();
+            fetchLiveReviews();
+            loadStoreConfig();
+
+            updateHeaderUI();
+            // Initialize WhatsApp draggable and idle-fade behavior
+            initWhatsAppDrag();
+            // Hide search suggestions when clicking outside the search row
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-row')) {
+                    clearSearchSuggestions();
+                }
+            });
+            // Collapse cart when clicking anywhere outside the cart
+            document.addEventListener('click', (e) => {
+                const cartWidget = document.getElementById('floating-cart');
+                if (cartWidget.classList.contains('expanded') && !e.target.closest('#floating-cart')) {
+                    toggleCartDetails(e);
+                }
+            });
+        };
+
+        let isAdminMode = false; // Only I can see the controls if I set this to true
+
+        // I am building a safe function to pull dynamic config settings.
+        // It now includes an ironclad failsafe so it won't crash if the Config sheet is missing.
+        function loadStoreConfig() {
+            fetch(`${WEB_APP_URL}?action=getAdminDashboard&t=${new Date().getTime()}`)
+            .then(res => res.json())
+            .then(data => {
+                // If the config array exists and has data, I apply it. Otherwise, I safely ignore it.
+                if (data && data.config && data.config.length > 0) {
+                    const bannerRow = data.config.find(row => row[0] === "Banner_URL");
+                    if (bannerRow && bannerRow[1]) {
+                        document.getElementById('main-banner').src = bannerRow[1];
+                    }
+                }
+            })
+            .catch(err => console.log("Config ignored: Using default banner."));
+        }
+
+        // I am creating a function that triggers every time I type a letter in the search bar
+        function handleSearch() {
+            const query = document.getElementById('search-bar').value.trim().toLowerCase();
+            const searchMeta = document.getElementById('search-meta');
+
+            // I am starting with the full catalog
+            let filteredCatalog = productCatalog;
+
+            // 1. I apply the category filter first (if it's not set to 'All')
+            if (currentCategoryFilter !== 'All') {
+                filteredCatalog = filteredCatalog.filter(product => {
+                    const prodCat = product.category || "Uncategorized";
+                    return prodCat === currentCategoryFilter;
+                });
+            }
+
+            // 2. I apply the text search filter second
+            if (query) {
+                filteredCatalog = filteredCatalog.filter(product =>
+                    product.product_name.toLowerCase().includes(query)
+                );
+            }
+
+            // I update the meta text to give the user accurate feedback
+            if (filteredCatalog.length === 0) {
+                searchMeta.textContent = `No items found in this category matching your search.`;
+            } else if (!query && currentCategoryFilter === 'All') {
+                searchMeta.textContent = `Showing all ${filteredCatalog.length} items.`;
+            } else {
+                searchMeta.textContent = `Showing ${filteredCatalog.length} matching item(s).`;
+            }
+
+            renderProductGrid(filteredCatalog, query);
+        }
+
+        function filterByCategory(categoryName, buttonElement) {
+            // Update the active button styling
+            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+            buttonElement.classList.add('active');
+
+            // Update state and re-render
+            currentCategoryFilter = categoryName;
+            handleSearch(); // Calling handleSearch applies both text search AND category filters
+        }
+
+        function updateSearchSuggestions(query) {
+            const suggestionsBox = document.getElementById('search-suggestions');
+            if (!query || query.trim() === '') {
+                suggestionsBox.style.display = 'none';
+                suggestionsBox.innerHTML = '';
+                return;
+            }
+
+            const q = query.trim().toLowerCase();
+            const matches = productCatalog
+                .filter(p => p.product_name.toLowerCase().includes(q))
+                .slice(0, 8);
+
+            if (matches.length === 0) {
+                suggestionsBox.style.display = 'none';
+                suggestionsBox.innerHTML = '';
+                return;
+            }
+
+            suggestionsBox.innerHTML = matches.map(m => `
+                <div class="search-suggestion-item" data-name="${escapeHtml(m.product_name)}">${m.product_name}</div>
+            `).join('');
+
+            suggestionsBox.style.display = 'block';
+
+            // Attach click handlers
+            Array.from(suggestionsBox.querySelectorAll('.search-suggestion-item')).forEach(el => {
+                el.addEventListener('click', (ev) => {
+                    const name = ev.currentTarget.getAttribute('data-name');
+                    document.getElementById('search-bar').value = name;
+                    clearSearchSuggestions();
+                    handleSearch();
+                });
+            });
+        }
+
+        function clearSearchSuggestions() {
+            const suggestionsBox = document.getElementById('search-suggestions');
+            if (suggestionsBox) {
+                suggestionsBox.style.display = 'none';
+                suggestionsBox.innerHTML = '';
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe.replace(/[&<>"]+/g, function(match) {
+                switch(match) {
+                    case '&': return '&amp;';
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '"': return '&quot;';
+                    default: return match;
+                }
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('search-bar').value = '';
+            document.getElementById('search-meta').textContent = 'Search live across product names.';
+            renderProductGrid();
+        }
+
+        function escapeRegExp(value) {
+            return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function highlightMatch(text, query) {
+            if (!query) {
+                return text;
+            }
+            const escaped = escapeRegExp(query);
+            const regex = new RegExp(escaped, 'gi');
+            return text.replace(regex, match => `<span class="highlight">${match}</span>`);
+        }
+
+        // I am creating a helper function to trigger the toast animation
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = "show";
+            // I am using setTimeout to remove the 'show' class after 3000 milliseconds (3 seconds)
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // I am creating a function to calculate the total items and cost in the cart dynamically
+        function updateCartSummary() {
+            let totalItems = 0;
+            let totalPrice = 0;
+
+            // I am iterating through my cart object to tally up the numbers
+            for (const id in cart) {
+                if (cart[id].qty > 0) {
+                    totalItems += cart[id].qty;
+                    totalPrice += (cart[id].qty * cart[id].price);
+                }
+            }
+
+            const cartWidget = document.getElementById('floating-cart');
+            
+            // If the cart has items, I show the widget and update the text; otherwise, I hide it
+            if (totalItems > 0) {
+                cartWidget.style.display = 'block';
+                document.getElementById('cart-item-count').innerText = totalItems;
+                document.getElementById('cart-total-price').innerText = totalPrice.toFixed(2);
+                updateFloatingCartDetails(totalPrice);
+            } else {
+                cartWidget.style.display = 'none';
+            }
+        }
+
+        function toggleCartDetails(event) {
+            const cartWidget = document.getElementById('floating-cart');
+            const itemsList = document.getElementById('cart-items-list');
+            const totalDetail = document.getElementById('cart-total-detail');
+            const clearAllBtn = document.getElementById('cart-clear-all');
+            const checkoutBtn = document.getElementById('cart-checkout');
+
+            if (cartWidget.classList.contains('expanded')) {
+                cartWidget.classList.remove('expanded');
+                itemsList.style.display = 'none';
+                totalDetail.style.display = 'none';
+                clearAllBtn.style.display = 'none';
+                checkoutBtn.style.display = 'none';
+            } else {
+                event.stopPropagation();
+                cartWidget.classList.add('expanded');
+                itemsList.style.display = 'block';
+                totalDetail.style.display = 'block';
+                clearAllBtn.style.display = 'block';
+                checkoutBtn.style.display = 'block';
+                updateFloatingCartDetails();
+            }
+        }
+
+        function updateFloatingCartDetails(totalPriceOverride) {
+            const itemsList = document.getElementById('cart-items-list');
+            const totalDetailPrice = document.getElementById('cart-total-detail-price');
+            let itemsHtml = '';
+            let runningTotal = 0;
+
+            for (const id in cart) {
+                if (cart[id].qty > 0) {
+                    const lineTotal = cart[id].qty * cart[id].price;
+                    runningTotal += lineTotal;
+                    itemsHtml += `
+                        <div class="cart-item-row">
+                            <div class="item-name">${cart[id].name}</div>
+                            <div class="item-detail">${cart[id].qty} × GH₵ ${cart[id].price.toFixed(2)}</div>
+                            <button class="delete-btn" onclick="removeFromCart(event, '${id}')" title="Remove item">×</button>
+                        </div>`;
+                }
+            }
+
+            itemsList.innerHTML = itemsHtml;
+            totalDetailPrice.innerText = (typeof totalPriceOverride === 'number' ? totalPriceOverride : runningTotal).toFixed(2);
+        }
+
+        function removeFromCart(event, productId) {
+            event.stopPropagation();
+            if (cart[productId]) {
+                cart[productId].qty = 0;
+                const qtyLabel = document.getElementById(`qty-${productId}`);
+                if (qtyLabel) {
+                    qtyLabel.innerText = '0';
+                }
+                updateCartSummary();
+                updateFloatingCartDetails();
+                showToast("Item removed from cart");
+            }
+        }
+
+        function clearAllCart(event) {
+            event.stopPropagation();
+            let hadItems = false;
+            for (const id in cart) {
+                if (cart[id].qty > 0) {
+                    cart[id].qty = 0;
+                    const qtyLabel = document.getElementById(`qty-${id}`);
+                    if (qtyLabel) {
+                        qtyLabel.innerText = '0';
+                    }
+                    hadItems = true;
+                }
+            }
+            if (!hadItems) {
+                showToast("Cart is already empty");
+                return;
+            }
+            const cartWidget = document.getElementById('floating-cart');
+            cartWidget.classList.remove('expanded');
+            document.getElementById('cart-items-list').style.display = 'none';
+            document.getElementById('cart-total-detail').style.display = 'none';
+            document.getElementById('cart-clear-all').style.display = 'none';
+            document.getElementById('cart-checkout').style.display = 'none';
+            updateCartSummary();
+            showToast("Cart cleared!");
+        }
+
+        // Initialize draggable WhatsApp button and idle-fade behavior
+        function initWhatsAppDrag() {
+            const whatsappBtn = document.querySelector('.whatsapp-float');
+            if (!whatsappBtn) return;
+
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            function startDrag(e) {
+                isDragging = true;
+                whatsappBtn.classList.add('dragging');
+                const touch = e.type === 'touchstart' ? e.touches[0] : e;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                initialLeft = whatsappBtn.offsetLeft;
+                initialTop = whatsappBtn.offsetTop;
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('touchmove', drag, {passive:false});
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchend', stopDrag);
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                const touch = e.type === 'touchmove' ? e.touches[0] : e;
+                const deltaX = touch.clientX - startX;
+                const deltaY = touch.clientY - startY;
+                whatsappBtn.style.left = (initialLeft + deltaX) + 'px';
+                whatsappBtn.style.top = (initialTop + deltaY) + 'px';
+                whatsappBtn.style.bottom = 'auto';
+                e.preventDefault();
+            }
+
+            function stopDrag() {
+                isDragging = false;
+                whatsappBtn.classList.remove('dragging');
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('touchmove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchend', stopDrag);
+            }
+
+            // Prevent accidental navigation when dragging
+            let lastLeft = whatsappBtn.offsetLeft;
+            whatsappBtn.addEventListener('click', function(e) {
+                const moved = Math.abs(whatsappBtn.offsetLeft - lastLeft) > 5;
+                if (moved) {
+                    e.preventDefault();
+                    lastLeft = whatsappBtn.offsetLeft;
+                    return;
+                }
+                // Open WhatsApp link when not dragging
+                window.open('https://wa.me/233502514747?text=Hi!%20I%20need%20help.', '_blank');
+            });
+
+            whatsappBtn.addEventListener('mousedown', startDrag);
+            whatsappBtn.addEventListener('touchstart', startDrag, {passive:true});
+        }
+
+        // I am updating my existing updateQty function to use the new toast and summary features
+        function updateQty(itemId, change) {
+            const item = cart[itemId];
+            if (item) {
+                const targetNewQty = item.qty + change;
+
+                // Ironclad ceiling guard so the cart addition never overflows warehouse counts
+                if (targetNewQty > item.stockLimit) {
+                    showToast(`⚠️ I cannot add more. We only have ${item.stockLimit} pieces available right now.`);
+                    return;
+                }
+
+                item.qty = Math.max(0, targetNewQty);
+                document.getElementById(`qty-${itemId}`).innerText = item.qty;
+
+                // If I am adding an item (change is positive), I trigger a success toast
+                if (change > 0) {
+                    showToast(`${item.name} updated in cart!`);
+                }
+
+                // I recalculate the total immediately after any quantity change
+                updateCartSummary();
+            }
+        }
+
+        // I am creating a quick navigation function so clicking the cart auto-scrolls to the checkout
+        function scrollToCheckout(event) {
+            event.stopPropagation();
+            document.querySelector('.checkout-box').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // I am building a view-switcher to keep the customer's screen clean and focused
+        function switchView(targetView) {
+            const shopView = document.getElementById('view-shop');
+            const checkoutView = document.getElementById('view-checkout');
+            const tabShop = document.getElementById('tab-shop');
+            const tabCheckout = document.getElementById('tab-checkout');
+
+            if (targetView === 'shop') {
+                shopView.style.display = 'block';
+                checkoutView.style.display = 'none';
+                tabShop.classList.add('active');
+                tabCheckout.classList.remove('active');
+            } else if (targetView === 'checkout') {
+                shopView.style.display = 'none';
+                checkoutView.style.display = 'block';
+                tabCheckout.classList.add('active');
+                tabShop.classList.remove('active');
+
+                // I gently scroll the user to the top of the checkout view so they don't get lost
+                window.scrollTo({ top: document.querySelector('.store-nav-tabs').offsetTop - 10, behavior: 'smooth' });
+            }
+        }
+
+        function fetchLiveStorefrontData(retryCount = 0) {
+            const spinner = document.getElementById('loading-spinner');
+            spinner.style.display = 'flex';
+
+            // I added '&t=' + timestamp to force the browser to bypass its cache
+            fetch(`${WEB_APP_URL}?action=getInventory&t=${new Date().getTime()}`)
+                .then(response => response.json())
+                .then(response => {
+                    spinner.style.display = 'none';
+                    if (response.success) {
+                        productCatalog = response.data;
+                        productCatalog.forEach(p => {
+                            cart[p.product_id] = { name: p.product_name, price: parseFloat(p.price_ghs), qty: 0, stockLimit: parseInt(p.current_stock) };
+                        });
+                        renderProducts();
+                    } else {
+                        document.getElementById('products-container').innerText = "Failed loading inventory.";
+                    }
+                })
+                .catch(error => {
+                    console.error("Data tracking break:", error);
+                    if (retryCount < 2) {
+                        setTimeout(() => fetchLiveStorefrontData(retryCount + 1), 2000);
+                    } else {
+                        spinner.style.display = 'none';
+                        document.getElementById('products-container').innerText = "Network timeout connection error.";
+                    }
+                });
+        }
+
+        function fetchLiveReviews(retryCount = 0) {
+            // I added the cache buster here too so new reviews appear instantly
+            fetch(`${WEB_APP_URL}?action=getReviews&t=${new Date().getTime()}`)
+                .then(response => response.json())
+                .then(response => {
+                    if (response.success) {
+                        const rContainer = document.getElementById('reviews-container');
+                        rContainer.innerHTML = '';
+
+                        if (response.data.length === 0) {
+                            rContainer.innerHTML = `<div class="loading-text">No reviews posted yet. Be the first!</div>`;
+                            return;
+                        }
+
+                        response.data.forEach(rev => {
+                            const ratingNum = parseInt(rev.rating || rev.rating_score) || 0;
+                            const clamped = Math.max(0, Math.min(5, ratingNum));
+                            const stars = '⭐'.repeat(clamped);
+                            rContainer.innerHTML += `
+                                <div class="review-card">
+                                    <div class="review-author">${rev.reviewer_name} ${stars}</div>
+                                    <div class="review-text">"${rev.review_text}"</div>
+                                </div>`;
+                        });
+                    }
+                })
+                .catch(error => {
+                    if (retryCount < 2) {
+                        setTimeout(() => fetchLiveReviews(retryCount + 1), 2000);
+                    }
+                });
+        }
+
+        function renderProductGrid(catalog = productCatalog, query = '') {
+            const grid = document.getElementById('products-container');
+            grid.innerHTML = '';
+
+            if (catalog.length === 0) {
+                grid.innerHTML = `<div class="loading-text">No products match your search. Try another keyword.</div>`;
+            } else {
+                // I am looping through the catalog to build the HTML for each product
+                catalog.forEach(product => {
+                    // 1. THE SECURITY FILTER: If it is hidden and she is NOT logged in, skip it completely.
+                    const isHidden = (product.is_hidden === true || product.is_hidden === "TRUE");
+                    if (isHidden && !isAdminMode) {
+                        return; // This acts like a bouncer, throwing the hidden item out of the loop
+                    }
+
+                    const stock = parseInt(product.current_stock);
+                    const imageUrl = product.image_url && product.image_url.trim() !== ""
+                        ? product.image_url
+                        : 'https://via.placeholder.com/150?text=No+Image';
+                    const highlightedName = highlightMatch(product.product_name, query);
+
+                    // Dynamic Stock Urgency Shield Logic
+                    let stockBadge = '';
+                    let purchaseControls = '';
+                    const stockLevel = parseInt(product.current_stock) || 0;
+
+                    if (stockLevel === 0) {
+                        // Rule A: Out of stock scenario
+                        stockBadge = `<span class="out-of-stock" style="background:#fff1f0; color:#c53030; padding:4px 8px; border-radius:6px; font-weight:700; font-size:0.85rem;">🚫 Out of Stock</span>`;
+                        purchaseControls = `<p style="color:#888; font-style:italic; font-size:0.85rem; margin-top:10px;">Restocking soon</p>`;
+                    } else if (stockLevel <= 5) {
+                        // Rule B: Low stock scarcity scenario (Triggers psychological urgency)
+                        stockBadge = `<span style="background:#fff3cd; color:#b58100; padding:4px 8px; border-radius:6px; font-weight:700; font-size:0.85rem; display:inline-block;">🔥 Only ${stockLevel} left!</span>`;
+                        purchaseControls = `
+                            <div class="qty-controls" style="margin-top:10px;">
+                                <button class="qty-btn" onclick="updateQty('${product.product_id}', -1)">-</button>
+                                <span id="qty-${product.product_id}" style="font-weight:bold; margin:0 8px;">0</span>
+                                <button class="qty-btn" onclick="updateQty('${product.product_id}', 1)">+</button>
+                            </div>
+                        `;
+                    } else {
+                        // Rule C: Robust stock levels (Maintains a clean corporate framing)
+                        stockBadge = `<span style="background:#e6f4ea; color:#137333; padding:4px 8px; border-radius:6px; font-weight:700; font-size:0.85rem; display:inline-block;">✅ In Stock</span>`;
+                        purchaseControls = `
+                            <div class="qty-controls" style="margin-top:10px;">
+                                <button class="qty-btn" onclick="updateQty('${product.product_id}', -1)">-</button>
+                                <span id="qty-${product.product_id}" style="font-weight:bold; margin:0 8px;">0</span>
+                                <button class="qty-btn" onclick="updateQty('${product.product_id}', 1)">+</button>
+                            </div>
+                        `;
+                    }
+
+                    // 2. THE ADMIN UX: If she is logged in, I show the Product ID for quick reference
+                    const hiddenBadge = (isAdminMode && isHidden)
+                        ? `<div style="background: #e74c3c; color: white; text-align: center; font-size: 10px; font-weight: bold; padding: 3px; border-radius: 3px; margin-bottom: 5px;">CURRENTLY HIDDEN</div>`
+                        : '';
+
+                    const adminButton = isAdminMode ?
+                        `<div style="text-align:center; font-size:0.8rem; color:#888; margin-top:10px;">
+                            ID: ${product.product_id}
+                        </div>` : '';
+                    // ---------------------------
+
+                    const cardHtml = `
+                        <div class="product-card" style="${isHidden ? 'opacity: 0.6;' : ''}">
+                            ${hiddenBadge}
+                            <div class="product-image-wrapper">
+                                <img src="${imageUrl}" alt="${product.product_name}" class="product-image">
+                            </div>
+                            <div class="product-info">
+                                <div class="product-name">${highlightedName}</div>
+                                <div class="product-price">GH₵ ${parseFloat(product.price_ghs).toFixed(2)}</div>
+                                <div style="margin-bottom: 8px;">${stockBadge}</div>
+                                ${adminButton}
+                                ${purchaseControls}
+                            </div>
+                        </div>`;
+                    grid.innerHTML += cardHtml;
+                });
+            }
+        }
+
+        function renderProducts() {
+            // I am removing the call to renderCarousel since we upgraded to category tabs
+            renderProductGrid();
+        }
+
+        function sendOrderViaWhatsApp() {
+            const name = document.getElementById('customer-name').value.trim();
+            const phone = document.getElementById('customer-phone').value.trim();
+            const delivery = document.getElementById('delivery-point').value.trim();
+            
+            if (!name || !phone || !delivery) {
+                alert('Please provide your complete shipping parameters first!');
+                return;
+            }
+
+            let orderSummary = `*Madave Store Order (Adidome):* \n\n`;
+            let total = 0;
+            const cartItemsPayload = {};
+            let explicitItemStrings = [];
+
+            for (const id in cart) {
+                if (cart[id].qty > 0) {
+                    const itemTotal = cart[id].qty * cart[id].price;
+                    orderSummary += `• ${cart[id].qty}x ${cart[id].name} - GH₵ ${itemTotal.toFixed(2)}\n`;
+                    total += itemTotal;
+                    
+                    cartItemsPayload[id] = cart[id].qty; 
+                    explicitItemStrings.push(`${cart[id].qty}x ${id}`);
+                }
+            }
+
+            if (total === 0) {
+                alert('Please register items into your cart basket first.');
+                return;
+            }
+
+            orderSummary += `\n*Total Order Balance:* GH₵ ${total.toFixed(2)}\n\n`;
+            orderSummary += `*Consignee Logistics:*\n`;
+            orderSummary += `• Name: ${name}\n`;
+            orderSummary += `• Phone: ${phone}\n`;
+            orderSummary += `• Delivery Route Point: ${delivery}`;
+
+            const backendPostPayload = {
+                action: "logOrder",
+                customer_name: name,
+                phone_number: phone,
+                delivery_point: delivery,
+                items_ordered: explicitItemStrings.join(", "),
+                total_amount: total,
+                cart_items: cartItemsPayload
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify(backendPostPayload)
+            })
+            .then(() => {
+                document.getElementById('customer-name').value = '';
+                document.getElementById('customer-phone').value = '';
+                document.getElementById('delivery-point').value = '';
+                const encodedMessage = encodeURIComponent(orderSummary);
+                const whatsappNumber = "233502514747"; 
+                window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, '_blank');
+                showToast("Order sent! Opening WhatsApp...");
+                // Clear the cart locally so it returns to empty after checkout
+                for (const id in cart) {
+                    if (cart[id]) {
+                        cart[id].qty = 0;
+                        const qtyLabel = document.getElementById(`qty-${id}`);
+                        if (qtyLabel) qtyLabel.innerText = '0';
+                    }
+                }
+                updateCartSummary();
+                updateFloatingCartDetails();
+
+                // Refresh inventory to pick up any stock changes (e.g., items out of stock)
+                fetchLiveStorefrontData();
+            })
+            .catch(err => {
+                alert("Database logging failure. Please click submit again to retry transaction.");
+                console.error(err);
+            });
+        }
+
+        function submitReview() {
+            const name = document.getElementById('reviewer-name').value.trim();
+            const text = document.getElementById('review-body').value.trim();
+            const rating = parseInt(document.getElementById('review-rating').value, 10) || 0;
+
+            if (!name || !text) {
+                alert('Both details are mandatory to log feedback.');
+                return;
+            }
+
+            const reviewPayload = {
+                action: "submitReview",
+                name: name,
+                text: text,
+                rating: rating
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify(reviewPayload)
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.success) {
+                    alert(`Thank you, ${name}! Your review has been logged securely for moderator validation.`);
+                    document.getElementById('reviewer-name').value = '';
+                    document.getElementById('review-body').value = '';
+                    document.getElementById('review-rating').value = '5';
+                }
+            });
+        }
+
+        function closeWelcomePopup() {
+            document.getElementById('welcome-popup').style.display = 'none';
+        }
+
+        // I am initializing a click counter and a timer variable to manage rapid taps on the storefront header
+        let brandingClickCount = 0;
+        let brandingClickTimeout;
+
+        function handleBrandingClick() {
+            // I clear any existing timeout to make sure the user is tapping rapidly in succession
+            clearTimeout(brandingClickTimeout);
+            brandingClickCount++;
+
+            // I set a 3-second window. If the user stops tapping, my counter resets automatically to 0
+            brandingClickTimeout = setTimeout(() => {
+                brandingClickCount = 0;
+            }, 3000);
+
+            // If I detect exactly 5 rapid clicks on my store name, I launch the secure administrative gateway
+            if (brandingClickCount === 5) {
+                brandingClickCount = 0; // I immediately reset my counter for safety
+
+                // I open the secure password modal instead of using browser prompt
+                document.getElementById('adminLoginModal').style.display = 'flex';
+                document.getElementById('adminPasswordInput').value = '';
+                document.getElementById('adminPasswordInput').focus();
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('adminPasswordInput');
+            const eyeIcon = event.target;
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.textContent = '👁️';
+            }
+        }
+
+        function closeAdminLoginModal() {
+            document.getElementById('adminLoginModal').style.display = 'none';
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminPasswordInput').type = 'password';
+        }
+
+        function attemptAdminLogin() {
+            const enteredKey = document.getElementById('adminPasswordInput').value;
+
+            if (enteredKey && enteredKey.trim() !== "") {
+                // I save the key into sessionStorage. It stays alive strictly within this active tab
+                // and vanishes completely out of existence the moment this tab is closed.
+                sessionStorage.setItem('madave_secret_key', enteredKey);
+
+                // I invoke my activation function to safely unhide my trending carousels or admin views
+                enableAdminFeatures();
+                closeAdminLoginModal();
+            } else {
+                alert("❌ Access Denied. Invalid entry.");
+            }
+        }
+
+        function enableAdminFeatures() {
+            // I retrieve my temporary key from session memory to pass along to my backend functions
+            const activeSecretKey = sessionStorage.getItem('madave_secret_key');
+            if (!activeSecretKey) return;
+
+            // I can now safely run my DOM manipulation logic to reveal hidden components
+            console.log("Admin environment initialized successfully from session container.");
+
+            // Set admin mode flag
+            isAdminMode = true;
+            showToast("Access Granted. Admin Mode Active.");
+            renderProducts(); // Refresh the page to show the buttons
+            updateHeaderUI();
+        }
+
+        // I am destroying the admin session
+        function logout() {
+            sessionStorage.removeItem("madave_secret_key");
+            isAdminMode = false;
+            // I am refreshing the UI to hide buttons
+            renderProducts();
+            // I am updating the header to hide the Logout button
+            updateHeaderUI();
+            alert("Admin Session Closed.");
+        }
+
+        function openRestockModal(productId) {
+            if (!isAdminMode) { alert('Admin only'); return; }
+            const inputId = document.getElementById('restock-product-id');
+            const qtyInput = document.getElementById('restock-qty');
+            if (productId) {
+                inputId.value = productId;
+            } else {
+                inputId.value = '';
+            }
+            qtyInput.value = '';
+            document.getElementById('adminRestockModal').style.display = 'flex';
+        }
+
+        function closeRestockModal() {
+            document.getElementById('adminRestockModal').style.display = 'none';
+        }
+
+        function saveRestock() {
+            const productId = document.getElementById('restock-product-id').value.trim();
+            const qty = parseInt(document.getElementById('restock-qty').value, 10);
+            
+            if (!productId) { alert('Enter a Product ID'); return; }
+            if (!qty || qty <= 0) { alert('Enter a valid quantity'); return; }
+
+            const adminKey = sessionStorage.getItem('madave_admin_key');
+            
+            // I am building the payload exactly as the backend expects it
+            const payload = { 
+                action: "logRestock", 
+                admin_key: adminKey,
+                product_id: productId, 
+                quantity: qty, 
+                note: "Quick Restock via Storefront UI" 
+            };
+
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success) {
+                    showToast('Restock saved successfully!');
+                    closeRestockModal();
+                    fetchLiveStorefrontData(); // Refresh the grid to show the new stock!
+                } else {
+                    alert('Restock failed: ' + (data.error || 'Unknown error'));
+                }
+            }).catch(err => {
+                console.error(err);
+                alert('Network error while saving restock');
+            });
+        }
+
+        // Manage header UI elements dependent on admin state
+        function updateHeaderUI() {
+            const header = document.querySelector('.header-branding');
+            if (!header) return;
+
+            // I am checking if an "Exit" button already exists to avoid duplicates
+            let logoutBtn = document.getElementById('logout-btn');
+
+            if (isAdminMode) {
+                if (!logoutBtn) {
+                    logoutBtn = document.createElement('button');
+                    logoutBtn.id = 'logout-btn';
+                    logoutBtn.innerText = 'Log Out';
+                    logoutBtn.style.marginLeft = '15px';
+                    logoutBtn.style.padding = '5px 10px';
+                    logoutBtn.style.cursor = 'pointer';
+                    logoutBtn.onclick = logout;
+                    header.appendChild(logoutBtn);
+                }
+            } else {
+                // If not in admin mode, I remove the button
+                if (logoutBtn) {
+                    logoutBtn.remove();
+                }
+            }
+        }
+    </script>
+
+    <footer style="text-align: center; padding: 20px; border-top: 1px solid #eaeaea; margin-top: 40px; color: #666; font-size: 0.9rem;">
+        <div class="store-location">📍 Adidome, Volta-Region, Ghana</div>
+        <div style="margin-top: 8px; color: #999; font-size: 0.85rem;">© powered by bloomcoretechnologies</div>
+    </footer>
+
+    <div class="whatsapp-float" onclick="window.open('https://wa.me/233502514747?text=Hi!%20I%20have%20a%20question%20about%20the%20store.', '_blank')">
+        <div class="whatsapp-float-icon">💬</div>
+        <div class="whatsapp-label">Need Help?</div>
+    </div>
+</body>
+</html>
