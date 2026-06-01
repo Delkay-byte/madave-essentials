@@ -362,26 +362,26 @@
             <button onclick="submitRestock()">Update Database</button>
         </div>
         
-        <div class="new-product-fields" id="new-product-container">
+        <div class="new-product-fields" id="new-product-container" style="display: none;">
             <input type="text" id="new-product-name" placeholder="Enter completely new product name">
 
-            <select id="new-product-category">
+            <select id="new-product-category" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ced4da; border-radius: 4px;">
                 <option value="">Select Category...</option>
-                <option value="Bath & Personal Care">🧼 Bath & Personal Care</option>
-                <option value="Oral Care">🦷 Oral Care</option>
-                <option value="Paper & Family Hygiene">🧻 Paper & Family Hygiene</option>
-                <option value="Laundry & Household Cleaning">🧺 Laundry & Household Cleaning</option>
-                <option value="Antiseptics & Health">🩹 Antiseptics & Health</option>
+                <option value="🧼 Bath & Personal Care">🧼 Bath & Personal Care</option>
+                <option value="🦷 Oral Care">🦷 Oral Care</option>
+                <option value="🧻 Paper & Family Hygiene">🧻 Paper & Family Hygiene</option>
+                <option value="🧺 Laundry & Household Cleaning">🧺 Laundry & Household Cleaning</option>
+                <option value="🩹 Antiseptics & Health">🩹 Antiseptics & Health</option>
                 <option value="Uncategorized">📦 Other / General</option>
             </select>
 
-            <select id="new-product-type">
-                <option value="Single">Single Bar/Piece</option>
-                <option value="Pack">Full Pack</option>
-            </select>
+            <input type="number" id="new-product-cost" placeholder="Cost Price (GH₵)" step="0.01">
+            <input type="number" id="new-product-price" placeholder="Selling Price (GH₵)" step="0.01">
 
-            <input type="number" id="new-product-cost" placeholder="Cost Price (GH₵)" step="0.01" min="0">
-            <input type="number" id="new-product-price" placeholder="Selling Price (GH₵)" step="0.01" min="0">
+            <div style="width: 100%; margin-top: 5px; border: 1px dashed #007bff; padding: 12px; border-radius: 6px; background: #f8f9fa; box-sizing: border-box;">
+                <label style="font-size: 0.85rem; font-weight: bold; color: #495057; display: block; margin-bottom: 8px;">📸 Product Image (Auto-uploads to Cloud)</label>
+                <input type="file" id="new-product-image" accept="image/*" style="border: none; padding: 0; background: transparent; width: 100%;">
+            </div>
         </div>
     </div>
 
@@ -696,99 +696,150 @@
             }
         }
 
-// // I am redesigning the restock pipeline to completely isolate the inputs and force everything into the audit logs
-        function submitRestock() {
-            const productSelectValue = document.getElementById('product-select').value;
-            const manualProductId = document.getElementById('restock-id').value.trim();
+        // Upgrading to async to handle network lag during image uploads
+        async function submitRestock() {
+            // Target the button so we can change its state dynamically during processing
+            const actionBtn = document.querySelector('.input-group button[onclick="submitRestock()"]');
 
-            // I am reading BOTH quantity boxes separately to prevent cross-contamination
-            const wholesaleQty = parseInt(document.getElementById('restock-qty').value, 10);
+            const productSelect = document.getElementById('product-select').value;
+            const qty = parseInt(document.getElementById('restock-qty').value, 10);
+            const category = document.getElementById('restock-category').value;
+
+            const manualId = document.getElementById('restock-id').value.trim();
             const manualQty = parseInt(document.getElementById('restock-qty-manual').value, 10);
+            const manualCategory = document.getElementById('restock-category-manual').value;
 
             let payload = null;
 
-            // SCENARIO A: The user is using the top "Manual Restock" card
-            if (manualProductId && manualQty > 0) {
-                const manualCategory = document.getElementById('restock-category-manual').value;
+            // Pathway A: Processing an entry via the Manual Input Card
+            if (manualId && manualQty > 0) {
                 payload = {
-                    action: "logRestock", // Points to our secure audit trail
+                    action: "logRestock",
                     admin_key: ADMIN_SECRET_KEY,
-                    product_id: manualProductId,
+                    product_id: manualId,
                     quantity: manualQty,
                     category: manualCategory,
-                    note: "Manual restock via Admin Terminal"
+                    note: "Manual entry injection override"
                 };
-            } 
-            // SCENARIO B: The user is creating a completely New Product
-            else if (productSelectValue === "NEW_PRODUCT") {
+            }
+            // Pathway B: Registering an entirely New Product (This is where the magic happens)
+            else if (productSelect === "NEW_PRODUCT") {
                 const newName = document.getElementById('new-product-name').value.trim();
-                const newCategory = document.getElementById('new-product-category').value;
-                const newType = document.getElementById('new-product-type').value;
                 const newCost = parseFloat(document.getElementById('new-product-cost').value);
                 const newPrice = parseFloat(document.getElementById('new-product-price').value);
+                const newCategory = document.getElementById('new-product-category').value;
 
-                if (!newName || !newCategory || !newPrice || !newCost || newPrice <= 0 || newCost <= 0 || !wholesaleQty || wholesaleQty <= 0) {
-                    alert("Please fill all fields cleanly, including the category, for the new product.");
+                if (!newName || !newCategory || isNaN(newPrice) || isNaN(newCost) || isNaN(qty) || qty <= 0) {
+                    alert("ValidationError: Ensure Name, Category, Prices, and Initial Quantity fields are completely populated.");
                     return;
                 }
+
+                // Snap button UI to freeze inputs and signal upload activity
+                actionBtn.innerText = "⏳ Uploading Image...";
+                actionBtn.disabled = true;
+
+                let finalImageUrl = "";
+                const fileInput = document.getElementById('new-product-image');
+
+                // Check if an image file has been explicitly chosen
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    // Injecting your real API Key directly into the request
+                    const imgbbApiKey = "347b54fbb019f07e0de3d1ce55d7050c";
+
+                    try {
+                        const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const imgbbResult = await imgbbResponse.json();
+
+                        if (imgbbResult.success) {
+                            finalImageUrl = imgbbResult.data.url; // Caught the permanent direct URL string safely!
+                            console.log("Image successfully hosted at: " + finalImageUrl);
+                        } else {
+                            alert("Cloud Hosting Error: Image failed to upload. Proceeding without graphic asset.");
+                        }
+                    } catch (uploadError) {
+                        console.error("Pipeline Breakdown:", uploadError);
+                        alert("Network exception encountered during cloud image transfer. Proceeding without asset.");
+                    }
+                }
+
+                actionBtn.innerText = "⏳ Syncing Database...";
 
                 payload = {
                     action: "addNewProduct",
                     admin_key: ADMIN_SECRET_KEY,
                     product_name: newName,
                     category: newCategory,
-                    unit_type: newType,
+                    unit_type: "Single", // Default assignment fallback
                     cost_price: newCost,
                     price_ghs: newPrice,
-                    initial_qty: wholesaleQty
+                    initial_qty: qty,
+                    image_url: finalImageUrl // Drops the newly minted CDN link directly into Column J
                 };
-            } 
-            // SCENARIO C: The user selected an existing item from the Wholesale dropdown
-            else if (productSelectValue && wholesaleQty > 0) {
-                const restockCategory = document.getElementById('restock-category').value;
+            }
+            // Pathway C: Normal wholesale processing via Dropdown selections
+            else if (productSelect && qty > 0) {
                 payload = {
-                    action: "logRestock", // FIXED: Now routes to the audit trail instead of the legacy updater!
+                    action: "logRestock",
                     admin_key: ADMIN_SECRET_KEY,
-                    product_id: productSelectValue,
-                    quantity: wholesaleQty,
-                    category: restockCategory,
-                    note: "Wholesale dropdown panel injection"
+                    product_id: productSelect,
+                    quantity: qty,
+                    category: category,
+                    note: "Wholesale restock allocation tracker"
                 };
             } else {
-                alert("Please fill out either the Manual Restock card or the Wholesale section completely.");
+                alert("Execution Aborted: No valid data layout detected. Verify fields before clicking.");
                 return;
             }
 
-            // I am firing the clean package off safely to the cloud engine
+            // Freeze the execution button text if running non-asynchronous pathways
+            if(productSelect !== "NEW_PRODUCT") {
+                actionBtn.innerText = "⏳ Syncing Database...";
+                actionBtn.disabled = true;
+            }
+
+            // Fire structural payload off to our secure Google Apps Script Web App Engine
             fetch(WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify(payload)
             })
             .then(res => res.json())
-            .then(response => {
-                if (response.success) {
+            .then(data => {
+                if (data.success) {
                     alert("Database updated and logged successfully!");
-                    
-                    // I am forcefully wiping every single input clean so ghost data never contaminates the next transaction
+
+                    // Forcefully clear out input nodes across fields
                     document.getElementById('restock-id').value = '';
-                    document.getElementById('restock-category-manual').value = '';
                     document.getElementById('restock-qty-manual').value = '';
                     document.getElementById('restock-qty').value = '';
-                    document.getElementById('restock-category').value = '';
                     document.getElementById('product-select').value = '';
                     document.getElementById('new-product-name').value = '';
                     document.getElementById('new-product-cost').value = '';
                     document.getElementById('new-product-price').value = '';
-                    
-                    toggleNewProductFields(); 
-                    fetchInventoryData(); 
+                    document.getElementById('new-product-image').value = '';
+                    document.getElementById('new-product-category').value = '';
+
+                    toggleNewProductFields();
+                    fetchInventoryData(); // Instantly refresh the visual UI table with new database states
                 } else {
-                    alert("Operation failed: " + response.error);
+                    alert("Storage Execution Refused: " + data.error);
                 }
             })
             .catch(err => {
-                alert("Network communication error.");
-                console.error(err);
+                console.error("Critical Connection Failure:", err);
+                alert("Communication Error: Unable to complete handshake with the serverless API backend.");
+            })
+            .finally(() => {
+                // Restore button functionality completely
+                actionBtn.innerText = "Update Database";
+                actionBtn.disabled = false;
             });
         }
 
